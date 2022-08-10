@@ -1,0 +1,180 @@
+// ========================================
+// Shopping cart
+// -----------------------------------------
+// Made for Persistence of vision 3.6
+//==========================================  
+// Copyright 2007 Gilles Tran http://www.oyonale.com
+// -----------------------------------------
+// This work is licensed under the Creative Commons Attribution License. 
+// To view a copy of this license, visit http://creativecommons.org/licenses/by/3.0/ 
+// or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
+// You are free:
+// - to copy, distribute, display, and perform the work
+// - to make derivative works
+// - to make commercial use of the work
+// Under the following conditions:
+// - Attribution. You must give the original author credit.
+// - For any reuse or distribution, you must make clear to others the license terms of this work.
+// - Any of these conditions can be waived if you get permission from the copyright holder.
+// Your fair use and other rights are in no way affected by the above. 
+//========================================== 
+//+w480 +h640 +F +A 
+#include "colors.inc"
+#declare RadOK=2; // 0=no radiosity ; 1= low quality rad; 2= good quality
+#declare ObjectOK=1; // turns object on
+#declare AreaOK=1; // area light
+global_settings {
+    max_trace_level 5
+    //---------------------------------------
+    // change gamma if necessary (scene too bright for instance)
+    //---------------------------------------
+    assumed_gamma 1
+    //---------------------------------------
+    noise_generator 1
+    #if (RadOK>0)
+        radiosity{
+            #switch (RadOK)
+                #case (1)
+                    count 35 error_bound 1.8 
+                #break
+                #case (2)
+                    count 100 error_bound 0.1 
+                #break
+            #end    
+            nearest_count 5 
+            recursion_limit 1  
+            low_error_factor 0.2 
+            gray_threshold 0 
+            minimum_reuse 0.015 
+            brightness 1 
+            adc_bailout 0.01/2      
+            normal on
+            media off
+        }
+    #end
+}
+
+
+#declare Camera=camera{
+        location z*-500+y*160
+        direction z*3
+        up y
+        right x*image_width/image_height
+        look_at <0,49,0>
+}
+#declare Camera2=camera{ // test camera
+      location z*-1000+y*1000
+      direction z*1
+      up y
+      right x*image_width/image_height
+      look_at <0,2,0>
+}
+camera{Camera translate x*15}
+//camera{Camera2}
+
+#declare C_Sun= rgb <1,0.9,0.8>;
+
+light_source{-z*10000,color C_Sun*2 rotate x*30 rotate y*80
+    #if (AreaOK=1)
+        area_light 50*x,50*y,5,5 adaptive 1 jitter orient circular
+    #end
+}
+
+
+//sky_sphere{pigment{gradient y color_map{[0.5 White*7][0.7 rgb <92,126,202>*7/225]}}}
+sky_sphere{pigment{gradient y color_map{[0.3 White][0.6 rgb <92,126,202>/225]}}}
+
+#declare T_Handles=texture{pigment{Orange} finish{ambient 0 diffuse 1 specular 0.3 roughness 0.1}}
+#declare T_HandleBar=texture{pigment{rgb <0.2,0.4,0.8>} finish{ambient 0 diffuse 1 specular 1 roughness 0.001 reflection {0,0.8 fresnel}}}
+#declare T_Wheel=texture{pigment{bozo lambda 3 scale 5 color_map{[0 rgb <0.9,0.93,0.91>*0.7][1 rgb <0.64,0.62,0.59>*0.5]}}finish{ambient 0 diffuse 1}}
+#declare T_Rubber=texture{pigment{Black} finish{ambient 0 diffuse 1 specular 0.2 roughness 0.1}}
+#declare T_Shiny=texture{
+    pigment {color rgb 0.1} 
+    finish{ambient 0 diffuse 1 metallic brilliance 4 specular 1 roughness 0.02 reflection {0.8,1}}
+}    
+#declare T_Rusty=texture{
+    pigment {bozo turbulence 1 color_map{[0.3 DarkWood*0.5][0.5 DarkBrown*0.5]}} 
+    normal{bozo turbulence 1 lambda 4 bump_size 1 scale 1/50}
+    finish{ambient 0 diffuse 1 specular 0.01 roughness 0.1}
+} 
+
+#declare T_Metal=texture{
+    bozo turbulence 1 lambda 4
+    texture_map{
+        [0.3 T_Shiny]
+        [0.7 T_Rusty]
+//        [0.5 pigment{Red}]
+//        [0.5 pigment{Blue}]
+    }
+    scale 50
+}
+#if (ObjectOK=1)
+
+    
+    #include "cart_handles.inc"
+    #include "cart_handlebar.inc"
+    #include "cart_basket.inc"
+    #include "cart_door.inc"
+    #include "cart_frontleftwheel.inc"
+    #include "cart_frontrightwheel.inc"
+    #include "cart_backleftwheel.inc"
+    #include "cart_backrightwheel.inc"
+    #declare AxisFrontLeft=<-13.037,0,42.858>;
+    #declare AxisFrontRight=<13.037,0,42.858>;
+    #declare AxisBackLeft=<-26.393,0,-30.6>;
+    #declare AxisBackRight=<26.393,0,-30.6>;
+    
+    // The wheels can be rotated independently
+    #declare AngleFrontLeft=20;
+    #declare AngleFrontRight=-6;
+    #declare AngleBackLeft=15;
+    #declare AngleBackRight=-80;
+    
+    #declare Cart=union{
+    
+        object{basket}
+        object{door}
+        object{handles}
+        object{handlebar}
+        
+        object{frontleftwheel translate -AxisFrontLeft rotate y*AngleFrontLeft translate AxisFrontLeft}
+        object{frontrightwheel translate -AxisFrontRight rotate y*AngleFrontRight translate AxisFrontRight}
+        object{backleftwheel translate -AxisBackLeft rotate y*AngleBackLeft translate AxisBackLeft}
+        object{backrightwheel translate -AxisBackRight rotate y*AngleBackRight translate AxisBackRight}
+    }
+#else
+    #declare Cart=box{<-30,1,-30>,<30,80,30> texture{T_Metal}}
+
+#end
+#declare N_Ground=normal{
+    bump_map{jpeg "stone09.jpg"} 
+    bump_size -5
+    rotate x*90
+    scale 200
+}
+#declare T_Ground=texture{
+    pigment{
+        gradient x
+        pigment_map{
+            [0.9 wrinkles turbulence 1 lambda 3 color_map{[0 rgb <0.9,0.93,0.91>*0.7][1 rgb <0.64,0.62,0.59>*0.5]}]
+            [0.9 color rgb <0.85,0.7,0.1>]
+        }
+        scale 100
+    }
+    normal{N_Ground}
+    finish{
+        ambient 0 
+        diffuse 1
+    }
+//    rotate -y*20
+}
+// stone ground
+#declare Ground=plane{y,0}
+#declare Wall=box{<-500,-10,0>,<500,300,1>}
+//==========================================  
+// All the objets
+//==========================================  
+
+object{Ground texture{T_Ground}}
+object{Wall texture{T_Ground rotate x*-90} translate z*11}
+object{Cart rotate -y*220 translate -z*50}
